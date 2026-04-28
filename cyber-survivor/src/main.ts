@@ -315,6 +315,7 @@ class Game {
   private metaStats: MetaStats = { hpLevel: 0, dmgLevel: 0 };
   private isLevelingUp: boolean = false;
   private audio: AudioManager = new AudioManager();
+  private starfield: {x: number, y: number, s: number}[] = [];
 
   private upgradePool: Upgrade[] = [
     { id: 'dmg', name: 'PLASMA OVERDRIVE', description: 'Increases bullet damage by +35%. Heavy impact.', level: 0, maxLevel: 5, apply: (s) => s.bulletDamage *= 1.35 },
@@ -343,6 +344,15 @@ class Game {
       this.pointerPos.x = e.clientX;
       this.pointerPos.y = e.clientY;
     });
+
+    // Init Starfield
+    for (let i = 0; i < 150; i++) {
+      this.starfield.push({
+        x: Math.random() * 2000 - 1000,
+        y: Math.random() * 2000 - 1000,
+        s: Math.random() * 1.5 + 0.5
+      });
+    }
 
     this.initUI();
     this.loadMeta();
@@ -581,9 +591,12 @@ class Game {
     this.player.stats.shield = currentShield;
     this.player.stats.maxShield = currentMaxShield;
 
-    // Clear Status Bar
+    // Clear Status Bar (Surges)
     document.getElementById('active-upgrades')!.innerHTML = '';
-    this.upgradePool.forEach(u => u.level = 0);
+    this.upgradePool.forEach(u => {
+      if (u.id !== 'shield') u.level = 0;
+    });
+    this.updateHUD(); // Force HUD update to show shield count
 
     const options = this.getRandomUpgrades(3);
     const list = document.getElementById('upgrade-list')!;
@@ -647,12 +660,25 @@ class Game {
   }
 
   private draw() {
-    // Clear with camera offset
+    // Clear
     this.ctx.fillStyle = '#030305';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.ctx.save();
     this.ctx.translate(this.canvas.width / 2 - this.player.x, this.canvas.height / 2 - this.player.y);
+
+    // Draw Starfield
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    this.starfield.forEach(s => {
+      // Parallax effect: wrap stars
+      let sx = (s.x - this.player.x * 0.2) % 1000;
+      let sy = (s.y - this.player.y * 0.2) % 1000;
+      if (sx < 0) sx += 1000;
+      if (sy < 0) sy += 1000;
+      this.ctx.beginPath();
+      this.ctx.arc(this.player.x - 500 + sx, this.player.y - 500 + sy, s.s, 0, Math.PI * 2);
+      this.ctx.fill();
+    });
 
     // Draw Grid
     this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
