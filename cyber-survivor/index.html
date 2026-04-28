@@ -24,8 +24,18 @@
       <div id="ui-overlay">
         <!-- HUD -->
         <div id="hud">
-          <div id="timer">00:00</div>
+          <div id="left-hud">
+            <div id="timer">00:00</div>
+            <div id="shield-indicator" class="hidden">🛡️ x<span id="shield-val">0</span></div>
+          </div>
           <div id="kill-counter">KILLS: 0</div>
+          <button id="pause-btn">||</button>
+        </div>
+
+        <!-- Pause Screen -->
+        <div id="pause-screen" class="screen hidden">
+          <h2>SYSTEM PAUSED</h2>
+          <button id="resume-btn">RESUME MISSION</button>
         </div>
 
         <!-- Start Screen -->

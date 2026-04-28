@@ -38,12 +38,15 @@ interface MetaStats {
 class Player {
   x: number;
   y: number;
-  radius: number = 12;
+  radius: number = 15;
+  rotation: number = 0;
   stats: GameStats;
   xp: number = 0;
   xpToNextLevel: number = 100;
   level: number = 1;
   lastFireTime: number = 0;
+  feedbackText: string = "";
+  feedbackTimer: number = 0;
 
   constructor(w: number, h: number) {
     this.x = w / 2;
@@ -68,29 +71,64 @@ class Player {
       const mag = Math.sqrt(dx * dx + dy * dy);
       this.x += (dx / mag) * this.stats.moveSpeed * dt;
       this.y += (dy / mag) * this.stats.moveSpeed * dt;
+      this.rotation = Math.atan2(dy, dx);
     }
+
+    if (this.feedbackTimer > 0) this.feedbackTimer -= dt;
+  }
+
+  showFeedback(text: string) {
+    this.feedbackText = text;
+    this.feedbackTimer = 1.5;
   }
 
   draw(ctx: CanvasRenderingContext2D) {
     ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+
+    // Rocket/Ship Body
     ctx.shadowBlur = 15;
     ctx.shadowColor = '#00f2ff';
     ctx.fillStyle = '#00f2ff';
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.moveTo(15, 0);
+    ctx.lineTo(-10, -10);
+    ctx.lineTo(-5, 0);
+    ctx.lineTo(-10, 10);
+    ctx.closePath();
     ctx.fill();
+
+    // Engine Glow
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(-8, 0, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
 
     // Shield Visual
     if (this.stats.shield > 0) {
+      ctx.save();
       ctx.strokeStyle = '#00f2ff';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2;
       ctx.setLineDash([5, 5]);
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.radius + 10, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.setLineDash([]);
+      ctx.restore();
     }
-    ctx.restore();
+
+    // Feedback Text
+    if (this.feedbackTimer > 0) {
+      ctx.save();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 14px Outfit';
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = Math.min(1, this.feedbackTimer);
+      ctx.fillText(this.feedbackText, this.x, this.y - 30);
+      ctx.restore();
+    }
   }
 }
 
@@ -219,6 +257,36 @@ class ScrapItem extends XPGem {
   }
 }
 
+// --- AUDIO MANAGER ---
+class AudioManager {
+  private ctx: AudioContext | null = null;
+
+  init() {
+    this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+
+  play(freq: number, type: OscillatorType, duration: number, vol: number = 0.1) {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + duration);
+  }
+
+  gem() { this.play(880, 'sine', 0.1); }
+  hit() { this.play(150, 'sawtooth', 0.2, 0.05); }
+  upg() { 
+    this.play(440, 'square', 0.1);
+    setTimeout(() => this.play(880, 'square', 0.2), 100);
+  }
+}
+
 // --- GAME ENGINE ---
 
 class Game {
@@ -242,6 +310,7 @@ class Game {
   private totalScraps: number = 0;
   private metaStats: MetaStats = { hpLevel: 0, dmgLevel: 0 };
   private isLevelingUp: boolean = false;
+  private audio: AudioManager = new AudioManager();
 
   private upgradePool: Upgrade[] = [
     { id: 'dmg', name: 'PLASMA OVERDRIVE', description: 'Increases bullet damage by +25%. Devastating against clusters.', level: 0, maxLevel: 5, apply: (s) => s.bulletDamage *= 1.25 },
@@ -306,8 +375,18 @@ class Game {
   }
 
   private initUI() {
-    document.getElementById('start-btn')!.onclick = () => this.start();
+    document.getElementById('start-btn')!.onclick = () => {
+      this.audio.init();
+      this.start();
+    };
+    document.getElementById('pause-btn')!.onclick = () => this.togglePause();
+    document.getElementById('resume-btn')!.onclick = () => this.togglePause();
     document.getElementById('restart-btn')!.onclick = () => location.reload();
+  }
+
+  private togglePause() {
+    this.isPaused = !this.isPaused;
+    document.getElementById('pause-screen')!.classList.toggle('hidden', !this.isPaused);
   }
 
   private start() {
@@ -379,6 +458,7 @@ class Game {
         if (this.player.stats.shield > 0) {
           this.player.stats.shield--;
           this.enemies.splice(i, 1);
+          this.audio.hit();
           continue;
         } else {
           this.die();
@@ -420,10 +500,12 @@ class Game {
       if (Math.hypot(g.x - this.player.x, g.y - this.player.y) < 20) {
         this.player.xp += g.value;
         this.gems.splice(i, 1);
+        this.audio.gem();
         if (this.player.xp >= this.player.xpToNextLevel && !this.isLevelingUp) {
           this.isLevelingUp = true;
           this.isPaused = true;
           this.updateHUD(); // Ensure bar fills
+          this.audio.upg();
           setTimeout(() => this.levelUp(), 700); // Wait for CSS animation
         }
       }
@@ -436,6 +518,7 @@ class Game {
       if (Math.hypot(s.x - this.player.x, s.y - this.player.y) < 20) {
         this.scraps++;
         this.scrapItems.splice(i, 1);
+        this.audio.gem();
       }
     }
 
@@ -485,6 +568,8 @@ class Game {
       card.innerHTML = `<h3>${upg.name}</h3><p>${upg.description}</p>`;
       card.onclick = () => {
         upg.apply(this.player.stats);
+        this.player.showFeedback(upg.name + " ACTIVATED");
+        this.audio.upg();
         
         // Safe Pulse: Clear nearby enemies
         const pulseRadius = 300;

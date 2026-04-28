@@ -98,6 +98,29 @@ canvas {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+#left-hud {
+  display: flex;
+  gap: 1rem;
+}
+
+#shield-indicator {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  background: rgba(0, 242, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--secondary);
+  color: var(--secondary);
+  box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+}
+
+#pause-btn {
+  padding: 0.5rem 1rem !important;
+  width: auto !important;
+  font-family: var(--font-mono);
+  font-size: 1rem !important;
+}
+
 /* UI Overlays */
 #ui-overlay {
   position: relative;
