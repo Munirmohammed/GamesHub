@@ -51,6 +51,10 @@ class Player {
   constructor(w: number, h: number) {
     this.x = w / 2;
     this.y = h / 2;
+    this.resetStats();
+  }
+
+  resetStats() {
     this.stats = {
       hp: 100, maxHp: 100, moveSpeed: 200,
       fireRate: 0.5, bulletDamage: 10, bulletSpeed: 500,
@@ -559,10 +563,27 @@ class Game {
   }
 
   private levelUp() {
+    this.isLevelingUp = true;
     this.isPaused = true;
     this.player.level++;
     this.player.xp -= this.player.xpToNextLevel; // Carry over excess XP
     this.player.xpToNextLevel *= 1.25;
+
+    // RESET SURGE: Clear temporary boosts (except shield)
+    const currentShield = this.player.stats.shield;
+    const currentMaxShield = this.player.stats.maxShield;
+    
+    this.player.resetStats();
+    // Re-apply Meta Stats
+    this.player.stats.maxHp += this.metaStats.hpLevel * 20;
+    this.player.stats.bulletDamage += this.metaStats.dmgLevel * 5;
+    // Restore Shield
+    this.player.stats.shield = currentShield;
+    this.player.stats.maxShield = currentMaxShield;
+
+    // Clear Status Bar
+    document.getElementById('active-upgrades')!.innerHTML = '';
+    this.upgradePool.forEach(u => u.level = 0);
 
     const options = this.getRandomUpgrades(3);
     const list = document.getElementById('upgrade-list')!;
