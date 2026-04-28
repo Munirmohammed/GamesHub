@@ -24,6 +24,8 @@ interface GameStats {
   pickupRange: number;
   pierce: number;
   multishot: number;
+  shield: number;
+  maxShield: number;
 }
 
 interface MetaStats {
@@ -49,8 +51,8 @@ class Player {
     this.stats = {
       hp: 100, maxHp: 100, moveSpeed: 200,
       fireRate: 0.5, bulletDamage: 10, bulletSpeed: 500,
-      bulletSize: 4, pickupRange: 250, // Massive increase from 100
-      pierce: 0, multishot: 1
+      bulletSize: 4, pickupRange: 250, 
+      pierce: 0, multishot: 1, shield: 0, maxShield: 0
     };
   }
 
@@ -77,6 +79,17 @@ class Player {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
+
+    // Shield Visual
+    if (this.stats.shield > 0) {
+      ctx.strokeStyle = '#00f2ff';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius + 10, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     ctx.restore();
   }
 }
@@ -183,6 +196,29 @@ class XPGem {
   }
 }
 
+class ScrapItem extends XPGem {
+  constructor(x: number, y: number) {
+    super(x, y, 0);
+    this.color = '#00f2ff';
+    this.radius = 5;
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.save();
+    ctx.fillStyle = this.color;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = this.color;
+    // Draw as a small triangle
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y - this.radius);
+    ctx.lineTo(this.x + this.radius, this.y + this.radius);
+    ctx.lineTo(this.x - this.radius, this.y + this.radius);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 // --- GAME ENGINE ---
 
 class Game {
@@ -192,6 +228,7 @@ class Game {
   private enemies: Enemy[] = [];
   private bullets: Bullet[] = [];
   private gems: XPGem[] = [];
+  private scrapItems: ScrapItem[] = [];
   private keys: Record<string, boolean> = {};
   private pointerPos: Vector = { x: 0, y: 0 };
 
@@ -211,6 +248,7 @@ class Game {
     { id: 'speed', name: 'TURBO', description: '+15% Move Speed', level: 0, maxLevel: 5, apply: (s) => s.moveSpeed *= 1.15 },
     { id: 'multi', name: 'SPLIT-CORE', description: '+1 Bullet', level: 0, maxLevel: 3, apply: (s) => s.multishot += 1 },
     { id: 'range', name: 'MAGNET', description: '+50% Pickup Range', level: 0, maxLevel: 5, apply: (s) => s.pickupRange *= 1.5 },
+    { id: 'shield', name: 'AEGIS-SHIELD', description: 'Enable Energy Shield', level: 0, maxLevel: 1, apply: (s) => { s.shield = 1; s.maxShield = 1; } },
   ];
 
   constructor() {
@@ -337,8 +375,14 @@ class Game {
       // Collision Player
       const dist = Math.hypot(e.x - this.player.x, e.y - this.player.y);
       if (dist < e.radius + this.player.radius) {
-        this.die();
-        return;
+        if (this.player.stats.shield > 0) {
+          this.player.stats.shield--;
+          this.enemies.splice(i, 1);
+          continue;
+        } else {
+          this.die();
+          return;
+        }
       }
 
       // Collision Bullets
@@ -363,8 +407,8 @@ class Game {
       if (enemyDead) {
         this.enemies.splice(i, 1);
         this.kills++;
-        this.gems.push(new XPGem(e.x, e.y, 25)); // Increased XP value
-        if (Math.random() < 0.15) this.scraps++;
+        this.gems.push(new XPGem(e.x, e.y, 25)); 
+        if (Math.random() < 0.2) this.scrapItems.push(new ScrapItem(e.x, e.y));
       }
     }
 
@@ -378,6 +422,16 @@ class Game {
         if (this.player.xp >= this.player.xpToNextLevel) {
           this.levelUp();
         }
+      }
+    }
+
+    // Update Scraps (Reverse Loop)
+    for (let i = this.scrapItems.length - 1; i >= 0; i--) {
+      const s = this.scrapItems[i];
+      s.update(dt, this.player.x, this.player.y, this.player.stats.pickupRange);
+      if (Math.hypot(s.x - this.player.x, s.y - this.player.y) < 20) {
+        this.scraps++;
+        this.scrapItems.splice(i, 1);
       }
     }
 
@@ -475,6 +529,7 @@ class Game {
     }
 
     this.gems.forEach(g => g.draw(this.ctx));
+    this.scrapItems.forEach(s => s.draw(this.ctx));
     this.bullets.forEach(b => b.draw(this.ctx));
     this.enemies.forEach(e => e.draw(this.ctx));
     this.player.draw(this.ctx);
