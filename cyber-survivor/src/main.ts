@@ -93,8 +93,9 @@ class Enemy {
       this.speed = 80;
       this.color = '#ff9900';
     } else {
-      this.hp += level * 5;
-      this.speed += Math.min(level * 5, 100);
+      this.hp = 1; // One-hit kill
+      this.speed = 120 + Math.min(level * 5, 100);
+      this.color = '#ff0055';
     }
   }
 
