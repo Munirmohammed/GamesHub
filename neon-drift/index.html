@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neon Drift | Premium 2D Action</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="gameCanvas"></canvas>
+      <div id="ui-overlay">
+        <div id="start-screen" class="screen">
+          <h1 class="glitch-text" data-text="NEON DRIFT">NEON DRIFT</h1>
+          <p class="subtitle">TAP TO ORBIT • AVOID THE VOID</p>
+          <button id="start-btn">START MISSION</button>
+        </div>
+        <div id="game-ui" class="hidden">
+          <div class="stats">
+            <div class="stat">
+              <span class="label">SCORE</span>
+              <span id="score-val">0000</span>
+            </div>
+            <div class="stat">
+              <span class="label">BEST</span>
+              <span id="best-val">0000</span>
+            </div>
+          </div>
+        </div>
+        <div id="game-over" class="screen hidden">
+          <h2>MISSION FAILED</h2>
+          <div class="final-score">SCORE: <span id="final-score-val">0</span></div>
+          <button id="restart-btn">RETRY</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
