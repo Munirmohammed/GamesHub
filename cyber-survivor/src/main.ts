@@ -48,8 +48,9 @@ class Player {
     this.y = h / 2;
     this.stats = {
       hp: 100, maxHp: 100, moveSpeed: 200,
-      fireRate: 0.5, bulletDamage: 10, bulletSpeed: 400,
-      bulletSize: 4, pickupRange: 100, pierce: 0, multishot: 1
+      fireRate: 0.5, bulletDamage: 10, bulletSpeed: 500,
+      bulletSize: 4, pickupRange: 250, // Massive increase from 100
+      pierce: 0, multishot: 1
     };
   }
 
@@ -94,7 +95,7 @@ class Enemy {
       this.color = '#ff9900';
     } else {
       this.hp = 1; // One-hit kill
-      this.speed = 120 + Math.min(level * 5, 100);
+      this.speed = 80 + Math.min(level * 5, 80); // Reduced starting speed from 120
       this.color = '#ff0055';
     }
   }
@@ -312,7 +313,7 @@ class Game {
 
     // Controlled Spawn System
     this.spawnTimer += dt;
-    const spawnDelay = Math.max(0.2, 1.2 - (this.timer / 120));
+    const spawnDelay = Math.max(0.3, 2.0 - (this.timer / 150)); // Much slower start
     if (this.spawnTimer > spawnDelay) {
       const type = Math.random() > 0.9 ? 'tank' : 'basic';
       this.spawnEnemy(type);
@@ -341,6 +342,7 @@ class Game {
       }
 
       // Collision Bullets
+      let enemyDead = false;
       for (let j = this.bullets.length - 1; j >= 0; j--) {
         const b = this.bullets[j];
         const bDist = Math.hypot(e.x - b.x, e.y - b.y);
@@ -351,14 +353,18 @@ class Game {
           } else {
             b.pierceCount++;
           }
+          if (e.hp <= 0) {
+            enemyDead = true;
+            break;
+          }
         }
       }
 
-      if (e.hp <= 0) {
+      if (enemyDead) {
         this.enemies.splice(i, 1);
         this.kills++;
-        this.gems.push(new XPGem(e.x, e.y, 10));
-        if (Math.random() < 0.1) this.scraps++;
+        this.gems.push(new XPGem(e.x, e.y, 25)); // Increased XP value
+        if (Math.random() < 0.15) this.scraps++;
       }
     }
 
