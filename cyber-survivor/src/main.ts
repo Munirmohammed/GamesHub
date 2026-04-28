@@ -243,12 +243,12 @@ class Game {
   private metaStats: MetaStats = { hpLevel: 0, dmgLevel: 0 };
 
   private upgradePool: Upgrade[] = [
-    { id: 'dmg', name: 'OVERDRIVE', description: '+25% Damage', level: 0, maxLevel: 5, apply: (s) => s.bulletDamage *= 1.25 },
-    { id: 'rate', name: 'HYPER-CLOCK', description: '+20% Fire Rate', level: 0, maxLevel: 5, apply: (s) => s.fireRate *= 0.8 },
-    { id: 'speed', name: 'TURBO', description: '+15% Move Speed', level: 0, maxLevel: 5, apply: (s) => s.moveSpeed *= 1.15 },
-    { id: 'multi', name: 'SPLIT-CORE', description: '+1 Bullet', level: 0, maxLevel: 3, apply: (s) => s.multishot += 1 },
-    { id: 'range', name: 'MAGNET', description: '+50% Pickup Range', level: 0, maxLevel: 5, apply: (s) => s.pickupRange *= 1.5 },
-    { id: 'shield', name: 'AEGIS-SHIELD', description: 'Enable Energy Shield', level: 0, maxLevel: 1, apply: (s) => { s.shield = 1; s.maxShield = 1; } },
+    { id: 'dmg', name: 'PLASMA OVERDRIVE', description: 'Increases bullet damage by +25%. Devastating against clusters.', level: 0, maxLevel: 5, apply: (s) => s.bulletDamage *= 1.25 },
+    { id: 'rate', name: 'HYPER-CLOCKING', description: 'Overclocks your weapon systems, increasing fire rate by +20%.', level: 0, maxLevel: 5, apply: (s) => s.fireRate *= 0.8 },
+    { id: 'speed', name: 'TURBO-THRUSTERS', description: 'Increases movement speed by +15%. Essential for outrunning swarms.', level: 0, maxLevel: 5, apply: (s) => s.moveSpeed *= 1.15 },
+    { id: 'multi', name: 'SPLIT-CORE MATRIX', description: 'Modifies the core to fire an additional projectile per shot.', level: 0, maxLevel: 3, apply: (s) => s.multishot += 1 },
+    { id: 'range', name: 'VOID MAGNET', description: 'Expands the extraction range for XP Gems and Scraps by +50%.', level: 0, maxLevel: 5, apply: (s) => s.pickupRange *= 1.5 },
+    { id: 'shield', name: 'AEGIS BARRIER', description: 'Deploys a kinetic shield that absorbs one lethal impact.', level: 0, maxLevel: 1, apply: (s) => { s.shield = 1; s.maxShield = 1; } },
   ];
 
   constructor() {
@@ -468,8 +468,8 @@ class Game {
   private levelUp() {
     this.isPaused = true;
     this.player.level++;
-    this.player.xp = 0;
-    this.player.xpToNextLevel *= 1.2;
+    this.player.xp -= this.player.xpToNextLevel; // Carry over excess XP
+    this.player.xpToNextLevel *= 1.25;
 
     const options = this.getRandomUpgrades(3);
     const list = document.getElementById('upgrade-list')!;
