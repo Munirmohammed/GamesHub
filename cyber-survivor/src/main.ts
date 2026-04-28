@@ -248,7 +248,8 @@ class Game {
   }
 
   private updateMetaUI() {
-    document.getElementById('meta-scraps')!.textContent = this.totalScraps.toString();
+    const scrapsEl = document.getElementById('meta-scraps');
+    if (scrapsEl) scrapsEl.textContent = this.totalScraps.toString();
   }
 
   public buyMeta(type: 'hp' | 'dmg') {
@@ -311,37 +312,47 @@ class Game {
 
     // Controlled Spawn System
     this.spawnTimer += dt;
-    const spawnDelay = Math.max(0.2, 1.2 - (this.timer / 120)); // Slow start, scales up
+    const spawnDelay = Math.max(0.2, 1.2 - (this.timer / 120));
     if (this.spawnTimer > spawnDelay) {
       const type = Math.random() > 0.9 ? 'tank' : 'basic';
       this.spawnEnemy(type);
       this.spawnTimer = 0;
     }
 
-    // Update Entities
-    this.bullets.forEach((b, i) => {
+    // Update Bullets (Reverse Loop)
+    for (let i = this.bullets.length - 1; i >= 0; i--) {
+      const b = this.bullets[i];
       b.update(dt);
-      if (b.life < 0) this.bullets.splice(i, 1);
-    });
+      if (b.life < 0) {
+        this.bullets.splice(i, 1);
+      }
+    }
 
-    this.enemies.forEach((e, i) => {
+    // Update Enemies (Reverse Loop)
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const e = this.enemies[i];
       e.update(dt, this.player.x, this.player.y);
 
       // Collision Player
       const dist = Math.hypot(e.x - this.player.x, e.y - this.player.y);
       if (dist < e.radius + this.player.radius) {
         this.die();
+        return;
       }
 
       // Collision Bullets
-      this.bullets.forEach((b, bi) => {
+      for (let j = this.bullets.length - 1; j >= 0; j--) {
+        const b = this.bullets[j];
         const bDist = Math.hypot(e.x - b.x, e.y - b.y);
         if (bDist < e.radius + b.radius) {
           e.hp -= b.damage;
-          if (b.pierceCount >= b.maxPierce) this.bullets.splice(bi, 1);
-          else b.pierceCount++;
+          if (b.pierceCount >= b.maxPierce) {
+            this.bullets.splice(j, 1);
+          } else {
+            b.pierceCount++;
+          }
         }
-      });
+      }
 
       if (e.hp <= 0) {
         this.enemies.splice(i, 1);
@@ -349,9 +360,11 @@ class Game {
         this.gems.push(new XPGem(e.x, e.y, 10));
         if (Math.random() < 0.1) this.scraps++;
       }
-    });
+    }
 
-    this.gems.forEach((g, i) => {
+    // Update Gems (Reverse Loop)
+    for (let i = this.gems.length - 1; i >= 0; i--) {
+      const g = this.gems[i];
       g.update(dt, this.player.x, this.player.y, this.player.stats.pickupRange);
       if (Math.hypot(g.x - this.player.x, g.y - this.player.y) < 20) {
         this.player.xp += g.value;
@@ -360,7 +373,7 @@ class Game {
           this.levelUp();
         }
       }
-    });
+    }
 
     this.updateHUD();
   }
