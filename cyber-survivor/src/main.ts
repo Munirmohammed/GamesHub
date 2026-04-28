@@ -313,12 +313,12 @@ class Game {
   private audio: AudioManager = new AudioManager();
 
   private upgradePool: Upgrade[] = [
-    { id: 'dmg', name: 'PLASMA OVERDRIVE', description: 'Increases bullet damage by +25%. Devastating against clusters.', level: 0, maxLevel: 5, apply: (s) => s.bulletDamage *= 1.25 },
-    { id: 'rate', name: 'HYPER-CLOCKING', description: 'Overclocks your weapon systems, increasing fire rate by +20%.', level: 0, maxLevel: 5, apply: (s) => s.fireRate *= 0.8 },
-    { id: 'speed', name: 'TURBO-THRUSTERS', description: 'Increases movement speed by +15%. Essential for outrunning swarms.', level: 0, maxLevel: 5, apply: (s) => s.moveSpeed *= 1.15 },
-    { id: 'multi', name: 'SPLIT-CORE MATRIX', description: 'Modifies the core to fire an additional projectile per shot.', level: 0, maxLevel: 3, apply: (s) => s.multishot += 1 },
-    { id: 'range', name: 'VOID MAGNET', description: 'Expands the extraction range for XP Gems and Scraps by +50%.', level: 0, maxLevel: 5, apply: (s) => s.pickupRange *= 1.5 },
-    { id: 'shield', name: 'AEGIS BARRIER', description: 'Deploys a kinetic shield that absorbs one lethal impact.', level: 0, maxLevel: 1, apply: (s) => { s.shield = 1; s.maxShield = 1; } },
+    { id: 'dmg', name: 'PLASMA OVERDRIVE', description: 'Increases bullet damage by +35%. Heavy impact.', level: 0, maxLevel: 5, apply: (s) => s.bulletDamage *= 1.35 },
+    { id: 'rate', name: 'HYPER-CLOCKING', description: 'Massive +40% Fire Rate increase. Shred enemies.', level: 0, maxLevel: 5, apply: (s) => s.fireRate *= 0.6 },
+    { id: 'speed', name: 'TURBO-THRUSTERS', description: '+20% Move Speed. Better dodging.', level: 0, maxLevel: 5, apply: (s) => s.moveSpeed *= 1.2 },
+    { id: 'multi', name: 'SPLIT-CORE MATRIX', description: 'Add +1 bullet per shot.', level: 0, maxLevel: 3, apply: (s) => s.multishot += 1 },
+    { id: 'range', name: 'VOID MAGNET', description: '+50% Magnet Range for loot.', level: 0, maxLevel: 5, apply: (s) => s.pickupRange *= 1.5 },
+    { id: 'shield', name: 'AEGIS BARRIER', description: 'Add +1 Shield charge.', level: 0, maxLevel: 10, apply: (s) => { s.shield += 1; s.maxShield += 1; } },
   ];
 
   constructor() {
@@ -393,6 +393,10 @@ class Game {
     this.isRunning = true;
     this.isPaused = false;
     this.timer = 0;
+    this.enemies = [];
+    this.bullets = [];
+    this.gems = [];
+    this.scrapItems = [];
     this.kills = 0;
     this.scraps = 0;
     this.lastTime = performance.now();
@@ -403,7 +407,9 @@ class Game {
     this.player.stats.hp = this.player.stats.maxHp;
     this.player.stats.bulletDamage += this.metaStats.dmgLevel * 5;
 
+    document.getElementById('hud')!.classList.remove('hidden');
     document.getElementById('start-screen')!.classList.add('hidden');
+    document.getElementById('active-upgrades')!.innerHTML = '';
     requestAnimationFrame((t) => this.loop(t));
   }
 
@@ -568,8 +574,21 @@ class Game {
       card.innerHTML = `<h3>${upg.name}</h3><p>${upg.description}</p>`;
       card.onclick = () => {
         upg.apply(this.player.stats);
+        upg.level++;
         this.player.showFeedback(upg.name + " ACTIVATED");
         this.audio.upg();
+
+        // Add to Status Bar
+        const bar = document.getElementById('active-upgrades')!;
+        let tag = document.getElementById(`tag-${upg.id}`);
+        if (!tag) {
+          tag = document.createElement('div');
+          tag.id = `tag-${upg.id}`;
+          tag.className = 'upg-tag';
+          bar.appendChild(tag);
+        }
+        const emoji = upg.id === 'dmg' ? '🔥' : upg.id === 'rate' ? '⚡' : upg.id === 'speed' ? '👟' : upg.id === 'multi' ? '🌀' : upg.id === 'range' ? '🧲' : '🛡️';
+        tag.textContent = `${emoji} LVL ${upg.level}`;
         
         // Safe Pulse: Clear nearby enemies
         const pulseRadius = 300;
