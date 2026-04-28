@@ -88,13 +88,13 @@ class Enemy {
 
   constructor(public x: number, public y: number, level: number, public type: string = 'basic') {
     if (type === 'tank') {
-        this.radius = 18;
-        this.hp = 50 + (level * 10);
-        this.speed = 80;
-        this.color = '#ff9900';
+      this.radius = 18;
+      this.hp = 50 + (level * 10);
+      this.speed = 80;
+      this.color = '#ff9900';
     } else {
-        this.hp += level * 5;
-        this.speed += Math.min(level * 5, 100);
+      this.hp += level * 5;
+      this.speed += Math.min(level * 5, 100);
     }
   }
 
@@ -124,9 +124,9 @@ class Bullet {
   pierceCount: number = 0;
 
   constructor(
-    public x: number, public y: number, 
-    public vx: number, public vy: number, 
-    public damage: number, public size: number, 
+    public x: number, public y: number,
+    public vx: number, public vy: number,
+    public damage: number, public size: number,
     public maxPierce: number
   ) {
     this.radius = size;
@@ -155,7 +155,7 @@ class XPGem {
   color: string = '#bc00ff';
   lerpSpeed: number = 0;
 
-  constructor(public x: number, public y: number, public value: number) {}
+  constructor(public x: number, public y: number, public value: number) { }
 
   update(dt: number, playerX: number, playerY: number, range: number) {
     const dx = playerX - this.x;
@@ -191,11 +191,13 @@ class Game {
   private bullets: Bullet[] = [];
   private gems: XPGem[] = [];
   private keys: Record<string, boolean> = {};
-  
+  private pointerPos: Vector = { x: 0, y: 0 };
+
   private isPaused: boolean = false;
   private isRunning: boolean = false;
   private lastTime: number = 0;
   private timer: number = 0;
+  private spawnTimer: number = 0;
   private kills: number = 0;
   private scraps: number = 0;
   private totalScraps: number = 0;
@@ -214,11 +216,20 @@ class Game {
     this.ctx = this.canvas.getContext('2d', { alpha: false })!;
     this.resize();
     this.player = new Player(this.canvas.width, this.canvas.height);
-    
+
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('keydown', (e) => this.keys[e.key] = true);
     window.addEventListener('keyup', (e) => this.keys[e.key] = false);
-    
+
+    window.addEventListener('pointermove', (e) => {
+      this.pointerPos.x = e.clientX;
+      this.pointerPos.y = e.clientY;
+    });
+    window.addEventListener('pointerdown', (e) => {
+      this.pointerPos.x = e.clientX;
+      this.pointerPos.y = e.clientY;
+    });
+
     this.initUI();
     this.loadMeta();
     (window as any).game = this; // For shop buttons
@@ -245,7 +256,7 @@ class Game {
       this.totalScraps -= cost;
       if (type === 'hp') this.metaStats.hpLevel++;
       else this.metaStats.dmgLevel++;
-      
+
       localStorage.setItem('cyber-scraps', this.totalScraps.toString());
       localStorage.setItem('cyber-meta', JSON.stringify(this.metaStats));
       this.updateMetaUI();
@@ -264,7 +275,7 @@ class Game {
     this.kills = 0;
     this.scraps = 0;
     this.lastTime = performance.now();
-    
+
     this.player = new Player(this.canvas.width, this.canvas.height);
     // Apply Meta Stats
     this.player.stats.maxHp += this.metaStats.hpLevel * 20;
@@ -297,10 +308,13 @@ class Game {
       this.player.lastFireTime = time();
     }
 
-    // Spawn Enemies
-    if (Math.random() < 0.02 + (this.timer / 600)) {
-      const type = Math.random() > 0.8 ? 'tank' : 'basic';
+    // Controlled Spawn System
+    this.spawnTimer += dt;
+    const spawnDelay = Math.max(0.2, 1.2 - (this.timer / 120)); // Slow start, scales up
+    if (this.spawnTimer > spawnDelay) {
+      const type = Math.random() > 0.9 ? 'tank' : 'basic';
       this.spawnEnemy(type);
+      this.spawnTimer = 0;
     }
 
     // Update Entities
@@ -311,7 +325,7 @@ class Game {
 
     this.enemies.forEach((e, i) => {
       e.update(dt, this.player.x, this.player.y);
-      
+
       // Collision Player
       const dist = Math.hypot(e.x - this.player.x, e.y - this.player.y);
       if (dist < e.radius + this.player.radius) {
@@ -351,25 +365,19 @@ class Game {
   }
 
   private fire() {
-    if (this.enemies.length === 0) return;
-    
-    // Auto-target nearest
-    const nearest = this.enemies.reduce((prev, curr) => {
-      const d1 = Math.hypot(prev.x - this.player.x, prev.y - this.player.y);
-      const d2 = Math.hypot(curr.x - this.player.x, curr.y - this.player.y);
-      return d1 < d2 ? prev : curr;
-    });
+    // Fire towards pointer
+    const dx = this.pointerPos.x - this.canvas.width / 2;
+    const dy = this.pointerPos.y - this.canvas.height / 2;
+    const angle = Math.atan2(dy, dx);
 
-    const angle = Math.atan2(nearest.y - this.player.y, nearest.x - this.player.x);
-    
     for (let i = 0; i < this.player.stats.multishot; i++) {
       const offset = (i - (this.player.stats.multishot - 1) / 2) * 0.2;
       const vx = Math.cos(angle + offset) * this.player.stats.bulletSpeed;
       const vy = Math.sin(angle + offset) * this.player.stats.bulletSpeed;
       this.bullets.push(new Bullet(
-        this.player.x, this.player.y, vx, vy, 
-        this.player.stats.bulletDamage, 
-        this.player.stats.bulletSize, 
+        this.player.x, this.player.y, vx, vy,
+        this.player.stats.bulletDamage,
+        this.player.stats.bulletSize,
         this.player.stats.pierce
       ));
     }
@@ -388,11 +396,11 @@ class Game {
     this.player.level++;
     this.player.xp = 0;
     this.player.xpToNextLevel *= 1.2;
-    
+
     const options = this.getRandomUpgrades(3);
     const list = document.getElementById('upgrade-list')!;
     list.innerHTML = '';
-    
+
     options.forEach(upg => {
       const card = document.createElement('div');
       card.className = 'upgrade-card';
@@ -416,9 +424,9 @@ class Game {
   private updateHUD() {
     const min = Math.floor(this.timer / 60);
     const sec = Math.floor(this.timer % 60);
-    document.getElementById('timer')!.textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+    document.getElementById('timer')!.textContent = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     document.getElementById('kill-counter')!.textContent = `KILLS: ${this.kills}`;
-    
+
     const xpPercent = (this.player.xp / this.player.xpToNextLevel) * 100;
     document.getElementById('xp-bar-fill')!.style.width = `${xpPercent}%`;
   }
@@ -458,7 +466,7 @@ class Game {
     this.isRunning = false;
     this.totalScraps += this.scraps;
     localStorage.setItem('cyber-scraps', this.totalScraps.toString());
-    
+
     document.getElementById('final-time')!.textContent = document.getElementById('timer')!.textContent;
     document.getElementById('final-kills')!.textContent = this.kills.toString();
     document.getElementById('final-scraps')!.textContent = this.scraps.toString();

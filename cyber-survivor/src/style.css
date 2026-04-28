@@ -112,21 +112,22 @@ canvas {
 
 .screen {
   pointer-events: auto;
-  background: rgba(5, 5, 8, 0.9);
-  padding: 3rem;
+  background: rgba(5, 5, 8, 0.95);
+  padding: 1.5rem 2rem;
   border-radius: 24px;
   border: 1px solid rgba(188, 0, 255, 0.3);
   box-shadow: 0 0 50px rgba(0, 0, 0, 1);
   text-align: center;
-  max-width: 90vw;
+  max-width: 95vw;
+  width: 380px;
 }
 
 .hidden { display: none !important; }
 
 h1 {
-  font-size: 3.5rem;
+  font-size: 2.5rem;
   font-weight: 800;
-  letter-spacing: -2px;
+  letter-spacing: -1px;
   margin-bottom: 0.5rem;
   color: #fff;
   text-shadow: var(--glow-primary);
@@ -134,9 +135,51 @@ h1 {
 
 .subtitle {
   color: rgba(255, 255, 255, 0.6);
-  letter-spacing: 2px;
-  font-size: 0.8rem;
-  margin-bottom: 2rem;
+  letter-spacing: 1px;
+  font-size: 0.7rem;
+  margin-bottom: 1.5rem;
+}
+
+.meta-section {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1rem;
+  border-radius: 16px;
+  margin: 1.2rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.meta-stat {
+  font-family: var(--font-mono);
+  color: var(--secondary);
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;
+  font-weight: 800;
+}
+
+#shop-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.shop-item {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.6rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.shop-btn {
+  padding: 0.4rem !important;
+  font-size: 0.65rem !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 6px !important;
 }
 
 /* Buttons */
