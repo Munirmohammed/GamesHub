@@ -241,6 +241,7 @@ class Game {
   private scraps: number = 0;
   private totalScraps: number = 0;
   private metaStats: MetaStats = { hpLevel: 0, dmgLevel: 0 };
+  private isLevelingUp: boolean = false;
 
   private upgradePool: Upgrade[] = [
     { id: 'dmg', name: 'PLASMA OVERDRIVE', description: 'Increases bullet damage by +25%. Devastating against clusters.', level: 0, maxLevel: 5, apply: (s) => s.bulletDamage *= 1.25 },
@@ -419,8 +420,11 @@ class Game {
       if (Math.hypot(g.x - this.player.x, g.y - this.player.y) < 20) {
         this.player.xp += g.value;
         this.gems.splice(i, 1);
-        if (this.player.xp >= this.player.xpToNextLevel) {
-          this.levelUp();
+        if (this.player.xp >= this.player.xpToNextLevel && !this.isLevelingUp) {
+          this.isLevelingUp = true;
+          this.isPaused = true;
+          this.updateHUD(); // Ensure bar fills
+          setTimeout(() => this.levelUp(), 700); // Wait for CSS animation
         }
       }
     }
@@ -481,6 +485,18 @@ class Game {
       card.innerHTML = `<h3>${upg.name}</h3><p>${upg.description}</p>`;
       card.onclick = () => {
         upg.apply(this.player.stats);
+        
+        // Safe Pulse: Clear nearby enemies
+        const pulseRadius = 300;
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+          const e = this.enemies[i];
+          const dist = Math.hypot(e.x - this.player.x, e.y - this.player.y);
+          if (dist < pulseRadius) {
+            this.enemies.splice(i, 1);
+          }
+        }
+
+        this.isLevelingUp = false;
         this.isPaused = false;
         document.getElementById('upgrade-screen')!.classList.add('hidden');
       };
