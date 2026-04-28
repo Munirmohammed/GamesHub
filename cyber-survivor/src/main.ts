@@ -26,6 +26,11 @@ interface GameStats {
   multishot: number;
 }
 
+interface MetaStats {
+  hpLevel: number;
+  dmgLevel: number;
+}
+
 // --- ENTITIES ---
 
 class Player {
@@ -81,9 +86,16 @@ class Enemy {
   speed: number = 120;
   color: string = '#ff0055';
 
-  constructor(public x: number, public y: number, level: number) {
-    this.hp += level * 5;
-    this.speed += Math.min(level * 5, 100);
+  constructor(public x: number, public y: number, level: number, public type: string = 'basic') {
+    if (type === 'tank') {
+        this.radius = 18;
+        this.hp = 50 + (level * 10);
+        this.speed = 80;
+        this.color = '#ff9900';
+    } else {
+        this.hp += level * 5;
+        this.speed += Math.min(level * 5, 100);
+    }
   }
 
   update(dt: number, playerX: number, playerY: number) {
@@ -187,6 +199,7 @@ class Game {
   private kills: number = 0;
   private scraps: number = 0;
   private totalScraps: number = 0;
+  private metaStats: MetaStats = { hpLevel: 0, dmgLevel: 0 };
 
   private upgradePool: Upgrade[] = [
     { id: 'dmg', name: 'OVERDRIVE', description: '+25% Damage', level: 0, maxLevel: 5, apply: (s) => s.bulletDamage *= 1.25 },
@@ -208,6 +221,7 @@ class Game {
     
     this.initUI();
     this.loadMeta();
+    (window as any).game = this; // For shop buttons
   }
 
   private resize() {
@@ -217,7 +231,25 @@ class Game {
 
   private loadMeta() {
     this.totalScraps = parseInt(localStorage.getItem('cyber-scraps') || '0');
+    this.metaStats = JSON.parse(localStorage.getItem('cyber-meta') || '{"hpLevel":0, "dmgLevel":0}');
+    this.updateMetaUI();
+  }
+
+  private updateMetaUI() {
     document.getElementById('meta-scraps')!.textContent = this.totalScraps.toString();
+  }
+
+  public buyMeta(type: 'hp' | 'dmg') {
+    const cost = type === 'hp' ? 10 : 15;
+    if (this.totalScraps >= cost) {
+      this.totalScraps -= cost;
+      if (type === 'hp') this.metaStats.hpLevel++;
+      else this.metaStats.dmgLevel++;
+      
+      localStorage.setItem('cyber-scraps', this.totalScraps.toString());
+      localStorage.setItem('cyber-meta', JSON.stringify(this.metaStats));
+      this.updateMetaUI();
+    }
   }
 
   private initUI() {
@@ -232,6 +264,13 @@ class Game {
     this.kills = 0;
     this.scraps = 0;
     this.lastTime = performance.now();
+    
+    this.player = new Player(this.canvas.width, this.canvas.height);
+    // Apply Meta Stats
+    this.player.stats.maxHp += this.metaStats.hpLevel * 20;
+    this.player.stats.hp = this.player.stats.maxHp;
+    this.player.stats.bulletDamage += this.metaStats.dmgLevel * 5;
+
     document.getElementById('start-screen')!.classList.add('hidden');
     requestAnimationFrame((t) => this.loop(t));
   }
@@ -252,10 +291,6 @@ class Game {
     this.timer += dt;
     this.player.update(dt, this.keys);
 
-    // Camera following (simple)
-    const camX = this.canvas.width / 2 - this.player.x;
-    const camY = this.canvas.height / 2 - this.player.y;
-
     // Firing
     if (time() - this.player.lastFireTime > this.player.stats.fireRate * 1000) {
       this.fire();
@@ -264,7 +299,8 @@ class Game {
 
     // Spawn Enemies
     if (Math.random() < 0.02 + (this.timer / 600)) {
-      this.spawnEnemy();
+      const type = Math.random() > 0.8 ? 'tank' : 'basic';
+      this.spawnEnemy(type);
     }
 
     // Update Entities
