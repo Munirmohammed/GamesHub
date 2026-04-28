@@ -1,13 +1,67 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cyber-survivor</title>
+    <title>CyberSurvivor | Neon Overdrive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <canvas id="gameCanvas"></canvas>
+      
+      <!-- XP Bar -->
+      <div id="xp-container">
+        <div id="xp-bar-bg">
+          <div id="xp-bar-fill"></div>
+        </div>
+        <div id="level-indicator">LVL <span id="lvl-val">1</span></div>
+      </div>
+
+      <div id="ui-overlay">
+        <!-- HUD -->
+        <div id="hud">
+          <div id="timer">00:00</div>
+          <div id="kill-counter">KILLS: 0</div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen">
+          <h1 class="glitch-text" data-text="CYBER SURVIVOR">CYBER SURVIVOR</h1>
+          <p class="subtitle">SURVIVE THE OVERDRIVE • COLLECT NEON SCRAPS</p>
+          <div class="meta-upgrades">
+            <div class="meta-stat">SCRAPS: <span id="meta-scraps">0</span></div>
+          </div>
+          <button id="start-btn">INITIATE RUN</button>
+        </div>
+
+        <!-- Upgrade Selection -->
+        <div id="upgrade-screen" class="screen hidden">
+          <h2>LEVEL UP</h2>
+          <p>CHOOSE AN AUGMENTATION</p>
+          <div id="upgrade-list">
+            <!-- Cards injected here -->
+          </div>
+        </div>
+
+        <!-- Game Over -->
+        <div id="game-over" class="screen hidden">
+          <h2>SYSTEM FAILURE</h2>
+          <div class="stats-summary">
+            <p>TIME: <span id="final-time">00:00</span></p>
+            <p>KILLS: <span id="final-kills">0</span></p>
+            <p>SCRAPS EARNED: <span id="final-scraps">0</span></p>
+          </div>
+          <div class="monetization-options">
+            <button id="revive-btn" class="secondary">WATCH AD TO REVIVE (1/1)</button>
+            <button id="restart-btn">RETURN TO BASE</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
