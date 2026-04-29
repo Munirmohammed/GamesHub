@@ -58,7 +58,7 @@ class Player {
     this.stats = {
       hp: 100, maxHp: 100, moveSpeed: 200,
       fireRate: 0.5, bulletDamage: 10, bulletSpeed: 500,
-      bulletSize: 4, pickupRange: 250, 
+      bulletSize: 4, pickupRange: 250,
       pierce: 0, multishot: 1, shield: 0, maxShield: 0
     };
   }
@@ -176,6 +176,14 @@ class Enemy {
 }
 
 class Bullet {
+  // Rocket image for visual representation
+  private img: HTMLImageElement = (() => {
+    const i = new Image();
+    i.src = '../assets/rocket.png'; // Ensure this image exists in assets folder
+    return i;
+  })();
+  // Simple trail effect (smoke particles)
+  private trail: { x: number; y: number; alpha: number }[] = [];
   radius: number;
   life: number = 3;
   pierceCount: number = 0;
@@ -193,16 +201,56 @@ class Bullet {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.life -= dt;
+
+    // Add current position to trail
+    this.trail.push({ x: this.x, y: this.y, alpha: 0.6 });
+    // Keep trail length manageable
+    if (this.trail.length > 10) {
+      this.trail.shift();
+    }
   }
 
   draw(ctx: CanvasRenderingContext2D) {
     ctx.save();
-    ctx.fillStyle = '#fff';
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#bc00ff';
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fill();
+
+    // Draw exhaust trail (smoke particles)
+    this.trail.forEach((point, index) => {
+      const size = this.radius * (index / this.trail.length);
+      ctx.globalAlpha = point.alpha * (index / this.trail.length);
+      ctx.fillStyle = '#666';
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.globalAlpha = 1;
+
+    // Draw rocket sprite
+    if (this.img.complete && this.img.naturalHeight !== 0) {
+      // Calculate rotation angle based on velocity
+      const angle = Math.atan2(this.vy, this.vx);
+      ctx.translate(this.x, this.y);
+      ctx.rotate(angle);
+      ctx.drawImage(this.img, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
+      ctx.resetTransform();
+    } else {
+      // Fallback: draw as triangle pointing in direction of movement
+      const angle = Math.atan2(this.vy, this.vx);
+      ctx.translate(this.x, this.y);
+      ctx.rotate(angle);
+      ctx.fillStyle = '#fff';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#ff6600';
+      ctx.beginPath();
+      // Rocket shape
+      ctx.moveTo(this.radius, 0);
+      ctx.lineTo(-this.radius, -this.radius / 2);
+      ctx.lineTo(-this.radius / 3, 0);
+      ctx.lineTo(-this.radius, this.radius / 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
     ctx.restore();
   }
 }
@@ -285,7 +333,7 @@ class AudioManager {
 
   gem() { this.play(880, 'sine', 0.1); }
   hit() { this.play(150, 'sawtooth', 0.2, 0.05); }
-  upg() { 
+  upg() {
     this.play(440, 'square', 0.1);
     setTimeout(() => this.play(880, 'square', 0.2), 100);
   }
@@ -315,7 +363,7 @@ class Game {
   private metaStats: MetaStats = { hpLevel: 0, dmgLevel: 0 };
   private isLevelingUp: boolean = false;
   private audio: AudioManager = new AudioManager();
-  private starfield: {x: number, y: number, s: number}[] = [];
+  private starfield: { x: number, y: number, s: number }[] = [];
 
   private upgradePool: Upgrade[] = [
     { id: 'dmg', name: 'PLASMA OVERDRIVE', description: 'Increases bullet damage by +35%. Heavy impact.', level: 0, maxLevel: 5, apply: (s) => s.bulletDamage *= 1.35 },
@@ -508,7 +556,7 @@ class Game {
       if (enemyDead) {
         this.enemies.splice(i, 1);
         this.kills++;
-        this.gems.push(new XPGem(e.x, e.y, 25)); 
+        this.gems.push(new XPGem(e.x, e.y, 25));
         if (Math.random() < 0.2) this.scrapItems.push(new ScrapItem(e.x, e.y));
       }
     }
@@ -582,7 +630,7 @@ class Game {
     // RESET SURGE: Clear temporary boosts (except shield)
     const currentShield = this.player.stats.shield;
     const currentMaxShield = this.player.stats.maxShield;
-    
+
     this.player.resetStats();
     // Re-apply Meta Stats
     this.player.stats.maxHp += this.metaStats.hpLevel * 20;
@@ -623,7 +671,7 @@ class Game {
         }
         const emoji = upg.id === 'dmg' ? '🔥' : upg.id === 'rate' ? '⚡' : upg.id === 'speed' ? '👟' : upg.id === 'multi' ? '🌀' : upg.id === 'range' ? '🧲' : '🛡️';
         tag.textContent = `${emoji} LVL ${upg.level}`;
-        
+
         // Safe Pulse: Clear nearby enemies
         const pulseRadius = 300;
         for (let i = this.enemies.length - 1; i >= 0; i--) {
